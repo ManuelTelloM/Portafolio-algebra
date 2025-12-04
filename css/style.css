@@ -1,0 +1,141 @@
+/* Variables de Colores para consistencia */
+/* Variables de Colores para consistencia */
+:root {
+    --color-fondo-principal: #0b0c10; /* Fondo negro muy oscuro */
+    --color-texto-claro: #c5c5c5; /* Gris claro */
+    --color-acento-principal: #00ff00; /* VERDE ELÉCTRICO BRILLANTE */
+    --color-card-fondo: #1f2833; /* Gris oscuro / Azul petróleo (para las tarjetas) */
+    --color-sombra: rgba(0, 255, 0, 0.5); /* Sombra basada en el acento verde */
+    --transicion-rapida: 0.3s ease-in-out;
+}
+
+/* --- Estilos Globales --- */
+
+/* Reset básico y configuración de fuente */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--color-fondo-principal); /* Fondo negro */
+    color: var(--color-texto-claro);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+/* --- Encabezado Principal --- */
+.main-header {
+    background-color: var(--color-card-fondo);
+    color: white;
+    padding: 40px 0;
+    text-align: center;
+    border-bottom: 4px solid var(--color-acento-principal); /* Línea Verde */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.main-header h1 {
+    font-size: 2.8em;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-acento-principal); /* Título en color VERDE */
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.8); /* Sombra de neón verde */
+}
+
+.main-header p {
+    font-size: 1.2em;
+    opacity: 0.8;
+}
+
+/* --- Contenido Principal y Grid --- */
+
+main.container {
+    flex-grow: 1;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.grid-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+/* --- Estilo de Tarjetas (Cards) --- */
+
+.card {
+    display: block;
+    background-color: var(--color-card-fondo);
+    color: var(--color-texto-claro);
+    padding: 25px;
+    border-radius: 12px;
+    text-decoration: none;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+    transition: var(--transicion-rapida);
+    border-left: 5px solid transparent;
+}
+
+/* Efecto Llamativo al pasar el ratón (Hover) */
+.card:hover {
+    transform: translateY(-5px) scale(1.02);
+    /* Sombra brillante verde para efecto llamativo */
+    box-shadow: 0 10px 20px var(--color-sombra), 0 0 15px var(--color-acento-principal);
+    border-left-color: var(--color-acento-principal); /* Barra de acento lateral VERDE */
+}
+
+.card h3 {
+    font-size: 1.6em;
+    margin-bottom: 8px;
+    color: var(--color-acento-principal); /* Títulos de tarjeta en VERDE */
+    border-bottom: 2px dashed rgba(0, 255, 0, 0.3);
+    padding-bottom: 5px;
+    transition: color var(--transicion-rapida);
+}
+
+.card:hover h3 {
+    color: white; /* El texto del título se vuelve blanco puro al hacer hover */
+}
+
+.card p {
+    font-size: 1em;
+    opacity: 0.9;
+}
+
+/* --- Pie de Página --- */
+.main-footer {
+    background-color: var(--color-card-fondo);
+    color: var(--color-texto-claro);
+    text-align: center;
+    padding: 20px 0;
+    font-size: 0.9em;
+    border-top: 1px solid rgba(0, 255, 0, 0.1);
+    margin-top: auto;
+}
+
+.main-footer p {
+    margin: 5px 0;
+    opacity: 0.7;
+}
+
+/* Media Query para asegurar la legibilidad en pantallas muy pequeñas */
+@media (max-width: 600px) {
+    .main-header h1 {
+        font-size: 2em;
+    }
+
+    .grid-menu {
+        grid-template-columns: 1fr;
+    }
+}
