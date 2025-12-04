@@ -220,8 +220,7 @@ button:active {
     <div id="resultado" class="result-section"></div>
 </div>
 <script>
-    // Clase para manejar números complejos
-class NumeroComplejo {
+   class NumeroComplejo {
     constructor(real, imag = 0) {
         this.real = real;
         this.imag = imag;
@@ -242,6 +241,8 @@ class NumeroComplejo {
     }
 
     toString() {
+        if (isNaN(this.real) || isNaN(this.imag)) return "Error";
+
         if (this.imag === 0) {
             return this.real.toFixed(4).replace(/\.?0+$/, '');
         }
@@ -262,11 +263,15 @@ class NumeroComplejo {
     }
 }
 
-// Función para parsear un polinomio en formato algebraico
 function parsearPolinomio(str) {
+    if (!str || str.trim() === "") throw new Error("El campo del polinomio está vacío.");
+    
     str = str.trim().replace(/\s/g, '');
     
-    // Encontrar el grado máximo
+    if (/[^x\d\+\-\^i\.]/.test(str)) {
+        throw new Error("El polinomio contiene caracteres inválidos.");
+    }
+    
     const gradoMatch = str.match(/x\^(\d+)/g);
     let gradoMax = 1;
     
@@ -278,106 +283,161 @@ function parsearPolinomio(str) {
         gradoMax = 0;
     }
     
-    // Inicializar array de coeficientes con ceros
     const coeficientes = new Array(gradoMax + 1).fill(null).map(() => new NumeroComplejo(0));
     
-    // Reemplazar términos implícitos
     str = str.replace(/([+-])\s*x/g, '$1 1x');
     str = str.replace(/^x/, '1x');
     
-    // Extraer términos
     const terminos = str.match(/[+-]?[^+-]+/g) || [];
     
     for (let termino of terminos) {
         termino = termino.trim();
-        
         if (!termino) continue;
         
         let coef, grado;
         
-        if (!termino.includes('x')) {
-            // Término independiente
-            coef = parsearComplejo(termino);
-            grado = 0;
-        } else if (termino.includes('x^')) {
-            // Término con exponente explícito
-            const partes = termino.split('x^');
-            coef = partes[0] === '' || partes[0] === '+' ? new NumeroComplejo(1) : 
-                   partes[0] === '-' ? new NumeroComplejo(-1) : 
-                   parsearComplejo(partes[0]);
-            grado = parseInt(partes[1]);
-        } else {
-            // Término con x (grado 1)
-            const partes = termino.split('x');
-            coef = partes[0] === '' || partes[0] === '+' ? new NumeroComplejo(1) : 
-                   partes[0] === '-' ? new NumeroComplejo(-1) : 
-                   parsearComplejo(partes[0]);
-            grado = 1;
+        try {
+            if (!termino.includes('x')) {
+                coef = parsearComplejo(termino);
+                grado = 0;
+            } else if (termino.includes('x^')) {
+                const partes = termino.split('x^');
+                if (partes[0] === '' || partes[0] === '+') coef = new NumeroComplejo(1);
+                else if (partes[0] === '-') coef = new NumeroComplejo(-1);
+                else coef = parsearComplejo(partes[0]);
+                
+                grado = parseInt(partes[1]);
+            } else {
+                const partes = termino.split('x');
+                if (partes[0] === '' || partes[0] === '+') coef = new NumeroComplejo(1);
+                else if (partes[0] === '-') coef = new NumeroComplejo(-1);
+                else coef = parsearComplejo(partes[0]);
+                
+                grado = 1;
+            }
+
+            if (isNaN(grado)) throw new Error("Grado inválido en término: " + termino);
+            
+            const indice = gradoMax - grado;
+            if (indice < 0 || indice >= coeficientes.length) {
+                throw new Error("Error en el orden de los exponentes.");
+            }
+
+            coeficientes[indice] = coeficientes[indice].sumar(coef);
+
+        } catch (e) {
+            throw new Error(`Error al procesar el término '${termino}': ${e.message}`);
         }
-        
-        const indice = gradoMax - grado;
-        coeficientes[indice] = coeficientes[indice].sumar(coef);
     }
     
     return coeficientes;
 }
 
-// Función para parsear números complejos
 function parsearComplejo(str) {
+    if (!str) return new NumeroComplejo(0);
     str = str.trim().replace(/\s/g, '');
     
     if (!str.includes('i')) {
-        return new NumeroComplejo(parseFloat(str));
+        const val = parseFloat(str);
+        if (isNaN(val)) throw new Error(`'${str}' no es un número válido.`);
+        return new NumeroComplejo(val);
     }
 
     str = str.replace(/i/g, '');
+    if (str === '' || str === '+') return new NumeroComplejo(0, 1);
+    if (str === '-') return new NumeroComplejo(0, -1);
     
     let real = 0;
     let imag = 0;
 
-    const regex = /([+-]?\d*\.?\d+)([+-]\d*\.?\d+)?/;
+    const regex = /([+-]?\d*\.?\d+)([+-]\d*\.?\d+)?/; 
     const match = str.match(regex);
 
     if (match) {
         if (str.indexOf('+') > 0 || (str.indexOf('-') > 0 && str.indexOf('-') !== 0)) {
             const partes = str.split(/(?=[+-])/);
-            real = parseFloat(partes[0]) || 0;
-            imag = parseFloat(partes[1]) || 1;
+            const cleanPartes = partes.filter(p => p !== "");
+            
+            if(cleanPartes.length === 2) {
+                real = parseFloat(cleanPartes[0]);
+                imag = parseFloat(cleanPartes[1]);
+            } else {
+                imag = parseFloat(str);
+            }
         } else {
-            imag = parseFloat(str) || 1;
+            imag = parseFloat(str);
         }
+    } else {
+         imag = parseFloat(str);
     }
+
+    if (isNaN(real)) real = 0;
+    if (isNaN(imag)) throw new Error(`Componente imaginario inválido en '${str}i'`);
 
     return new NumeroComplejo(real, imag);
 }
 
-// Función principal para calcular la división
+// Nueva función para parsear el divisor lineal (ej: "x+1" -> raíz -1)
+function parsearDivisor(str) {
+    if (!str || str.trim() === "") throw new Error("El campo del divisor está vacío.");
+    str = str.trim().replace(/\s/g, '');
+    
+    // Debe ser de la forma x, x+c, x-c, donde c es un número real
+    const match = str.match(/^x([+-]?\d*\.?\d+)?$/);
+    if (!match) {
+        throw new Error("El divisor debe ser de la forma 'x', 'x+c' o 'x-c' (ej: x+1, x-2).");
+    }
+    
+    const cStr = match[1];
+    const c = cStr ? parseFloat(cStr) : 0; // Si no hay c, es x+0
+    if (isNaN(c)) {
+        throw new Error(`El coeficiente en el divisor '${str}' no es un número válido.`);
+    }
+    
+    // El divisor es x + c = x - (-c), así que la raíz es -c
+    return new NumeroComplejo(-c);
+}
+
 function calcularDivision() {
+    const resultDiv = document.getElementById('resultado');
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
+
     try {
         const polinomioStr = document.getElementById('polinomio').value;
-        const raizStr = document.getElementById('raiz').value;
+        const divisorStr = document.getElementById('raiz').value; // Ahora es el divisor, no la raíz
 
-        if (!polinomioStr || !raizStr) {
-            throw new Error('Por favor ingresa todos los datos');
+        if (!polinomioStr || !divisorStr) {
+            throw new Error('Por favor ingresa todos los datos.');
         }
 
         const coeficientes = parsearPolinomio(polinomioStr);
-        const raiz = parsearComplejo(raizStr);
+        const raiz = parsearDivisor(divisorStr); // Extrae la raíz del divisor
+
+        if (coeficientes.some(c => isNaN(c.real) || isNaN(c.imag))) {
+            throw new Error("Error al interpretar los coeficientes del polinomio.");
+        }
+        if (isNaN(raiz.real) || isNaN(raiz.imag)) {
+            throw new Error("El divisor no es válido.");
+        }
 
         const resultado = divisionSintetica(coeficientes, raiz);
-        mostrarResultado(resultado, coeficientes, raiz, polinomioStr);
+        mostrarResultado(resultado, coeficientes, raiz, polinomioStr, divisorStr);
 
     } catch (error) {
-        document.getElementById('resultado').innerHTML = `
+        console.error(error);
+        resultDiv.innerHTML = `
             <div class="error">
-                <strong>Error:</strong> ${error.message}
+                <p><strong>⚠ Error de Cálculo</strong></p>
+                <p>${error.message}</p>
+                <p style="font-size: 0.8em; margin-top:5px">Revisa que no haya letras extrañas o múltiples signos seguidos.</p>
             </div>
         `;
-        document.getElementById('resultado').classList.add('show');
+        resultDiv.classList.add('show');
+        resultDiv.style.display = 'block';
     }
 }
 
-// Algoritmo de división sintética
 function divisionSintetica(coeficientes, raiz) {
     const n = coeficientes.length;
     const proceso = [];
@@ -405,21 +465,21 @@ function divisionSintetica(coeficientes, raiz) {
     };
 }
 
-// Función para mostrar el resultado en HTML
-function mostrarResultado(resultado, coeficientes, raiz, polinomioOriginal) {
+function mostrarResultado(resultado, coeficientes, raiz, polinomioOriginal, divisorStr) {
     let html = '<div class="result-title">Polinomio Original</div>';
-    html += '<div style="text-align: center; font-size: 1.2em; margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e0e0e0; border-radius: 4px;">';
+    html += '<div style="text-align: center; font-size: 1.2em; margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e0e0e0; border-radius: 4px; color: #111;">';
     html += '<strong>' + polinomioOriginal + '</strong>';
     html += '</div>';
 
     html += '<div class="result-title">Coeficientes Extraídos</div>';
+    html += '<div style="overflow-x: auto;">';
     html += '<table class="process-table" style="margin-bottom: 30px;">';
     html += '<tr>';
     for (let i = 0; i < coeficientes.length; i++) {
         const exp = coeficientes.length - 1 - i;
         html += '<td><strong>';
         if (exp === 0) {
-            html += 'Término independiente';
+            html += 'Término ind.';
         } else if (exp === 1) {
             html += 'x';
         } else {
@@ -434,12 +494,14 @@ function mostrarResultado(resultado, coeficientes, raiz, polinomioOriginal) {
     });
     html += '</tr>';
     html += '</table>';
+    html += '</div>';
 
     html += '<div class="result-title">Proceso de División Sintética</div>';
-
+    
+    html += '<div style="overflow-x: auto;">';
     html += '<table class="process-table">';
     
-    html += '<tr><td class="divisor-cell">Divisor: ' + raiz.toString() + '</td>';
+    html += '<tr><td class="divisor-cell">Divisor: ' + divisorStr + ' (Raíz: ' + raiz.toString() + ')</td>';
     coeficientes.forEach(c => {
         html += '<td>' + c.toString() + '</td>';
     });
@@ -458,21 +520,29 @@ function mostrarResultado(resultado, coeficientes, raiz, polinomioOriginal) {
     html += '</tr>';
 
     html += '</table>';
+    html += '</div>';
 
     html += '<div class="final-result">';
-    html += '<p><strong>Cociente:</strong> ';
+    html += '<p><strong>Cociente (Q):</strong> ';
     
     let cocienteStr = '';
+    let firstTerm = true;
     for (let i = 0; i < resultado.cociente.length; i++) {
         const exp = resultado.cociente.length - 1 - i;
         const coef = resultado.cociente[i];
         
-        if (coef.real !== 0 || coef.imag !== 0) {
-            if (cocienteStr && (coef.real > 0 || (coef.real === 0 && coef.imag > 0))) {
-                cocienteStr += ' + ';
+        if (Math.abs(coef.real) > 1e-10 || Math.abs(coef.imag) > 1e-10 || resultado.cociente.length === 1) {
+            
+            if (!firstTerm) {
+                 cocienteStr += ' + ';
             }
             
-            cocienteStr += '(' + coef.toString() + ')';
+            const coefText = coef.toString();
+            if(coefText.includes('+') || coefText.includes('-')) {
+                cocienteStr += '(' + coefText + ')';
+            } else {
+                cocienteStr += coefText;
+            }
             
             if (exp > 0) {
                 cocienteStr += 'x';
@@ -480,22 +550,25 @@ function mostrarResultado(resultado, coeficientes, raiz, polinomioOriginal) {
                     cocienteStr += '<sup>' + exp + '</sup>';
                 }
             }
+            firstTerm = false;
         }
     }
     
-    html += cocienteStr || '0';
+    if (cocienteStr === '') cocienteStr = '0';
+    html += cocienteStr;
     html += '</p>';
     
-    html += '<p><strong>Residuo:</strong> ' + resultado.residuo.toString() + '</p>';
+    html += '<p><strong>Residuo (R):</strong> ' + resultado.residuo.toString() + '</p>';
     
     if (resultado.residuo.esReal() && Math.abs(resultado.residuo.real) < 1e-10) {
-        html += '<p style="color: #333; font-weight: 600;">✓ La división es exacta (residuo = 0)</p>';
+        html += '<p style="color: #4cd137; font-weight: 600; margin-top:10px;">✓ La división es exacta (Raíz encontrada)</p>';
     }
     
     html += '</div>';
 
     document.getElementById('resultado').innerHTML = html;
     document.getElementById('resultado').classList.add('show');
+    document.getElementById('resultado').style.display = 'block';
 }
 </script>
 </body>
